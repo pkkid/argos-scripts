@@ -15,7 +15,8 @@ ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done'
 def _get_jira_auth():
     """ Authenticate with JIRA. """
     # Auth needs to be defined in some ~/.bash* file with the format:
-    # export JIRA_AUTH="user@nasuni.com:API_TOKEN"
+    # export JIRA_HOST="host"
+    # export JIRA_AUTH="user@example.com:token"
     host, auth = None, None
     result = subprocess.check_output(shlex.split(f'bash -c "grep JIRA_....= ~/.bash*"'))
     result = result.decode('utf8').strip()
