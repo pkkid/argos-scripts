@@ -61,7 +61,7 @@ def _print_title(prs):
     """ Pluralize the title. """
     total = len(prs)
     title = f'{total} PRs'
-    if total == '0': title = 'PRs'
+    if total == 0: title = 'PRs'
     if total == 1: title = '1 PR'
     print(title)
     

@@ -58,7 +58,7 @@ def _print_title(prs):
     """ Pluralize the title. """
     total = len(prs)
     title = f'{total} Issues'
-    if total == '0': title = 'Issues'
+    if total == 0: title = 'Issues'
     if total == 1: title = '1 Issue'
     print(title)
     
