@@ -10,6 +10,7 @@ import requests, subprocess, shlex
 from requests.auth import HTTPBasicAuth
 
 ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done'
+SEARCH = '{host}/issues/?jql={query}'
 
 
 def _get_jira_auth():
@@ -57,7 +58,7 @@ def _print_title(prs):
     """ Pluralize the title. """
     total = len(prs)
     title = f'{total} Issues'
-    if total == '0': title = 'No Issues'
+    if total == '0': title = 'Issues'
     if total == 1: title = '1 Issue'
     print(title)
     
@@ -71,3 +72,6 @@ if __name__ == '__main__':
         print(f'{key} - {summary[:40].strip()} | href="{host}/browse/{key}"')
     if not assigned:
         print(f'No pull requests | color=#888')
+    print('---')
+    url = SEARCH.replace('{host}', host).replace('{query}', ASSIGNED_ISSUES)
+    print(f'Go to Jira | href="{url}"')

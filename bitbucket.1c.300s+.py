@@ -61,7 +61,7 @@ def _print_title(prs):
     """ Pluralize the title. """
     total = len(prs)
     title = f'{total} PRs'
-    if total == '0': title = 'No PRs'
+    if total == '0': title = 'PRs'
     if total == 1: title = '1 PR'
     print(title)
     
@@ -76,3 +76,5 @@ if __name__ == '__main__':
         print(f'{title[:60].strip().lower()} | href="{href}"')
     if not prs:
         print(f'No pull requests | color=#888')
+    print('---')
+    print(f'Go to Bitbucket | href="{host}"')
