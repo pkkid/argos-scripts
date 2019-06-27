@@ -9,7 +9,7 @@ References:
 import requests, subprocess, shlex
 from requests.auth import HTTPBasicAuth
 
-PRS = '{host}/rest/api/latest/inbox/pull-requests?role=%s&start=0' \
+PRS = '{host}/rest/api/latest/inbox/pull-requests?role={role}&start=0' \
     '&limit=10&avatarSize=64&withAttributes=true&state=OPEN&order=oldest'
 
 
@@ -42,6 +42,7 @@ def _getprs(host, auth, role):
     try:
         prs = []
         url = PRS.replace('{host}', host)
+        url = url.replace('{role}', role)
         response = requests.get(url, auth=auth)
         response = response.json()
         if response.get('errors'):
