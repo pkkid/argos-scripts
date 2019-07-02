@@ -7,7 +7,9 @@ Useful scripts to run in Argos or Bitbar.
 * `radio.1c.3s+.py` - Simple internet radio player in the system try.
 
 ### Installation
+
 1. You can install Argos from the gnome-extensions website.
+2. Install requirements: `sudo -H pip3 install PIL requests`
 2. Copy and paste these scripts `~/.config/argos/` and make them executable.
 3. If using the Bitbucket script, add your auth info to your .bash_profile.
    <br/>`export JIRA_HOST="https://jirahost.com"`
