@@ -1,43 +1,50 @@
 #!/usr/bin/env python3
+# encoding: utf-8
 """
 Internet Radio using VLC
-
-References:
   Argos Extension: https://extensions.gnome.org/extension/1176/argos/
   Argos Documentation: https://github.com/p-e-w/argos
-  Icon Generator: https://www.iconsdb.com/custom-color/circle-icon.html#custom_size
-  Base64 Generator: https://www.base64-image.de/
 """
-import subprocess
+import os, subprocess
 from shlex import split
 
-STATIONS = [
-    ('90.5 WBER - Alternative', 'http://wber.org/wber.m3u'),
+STATIONS = os.path.expanduser('~/.config/radiostations.txt')
+DEFAULT_STATIONS = [
+    ('90.5 WBER Alternative', 'http://wber.org/wber.m3u'),
     ('Idobi Alternative', 'http://69.46.75.98/'),
     ('Lounge Radio', 'http://77.235.42.90/;stream/1'),
-    ('Thailand Library', 'http://112.121.150.133:9114/'),
 ]
 
 
+def _get_stations():
+    """ Return the full list of radio stations. """
+    stations = []
+    # Read the configuration file
+    if os.path.isfile(STATIONS):
+        with open(STATIONS, 'r') as handle:
+            for line in handle.read().strip().split('\n'):
+                stations.append(line.rsplit(' ', 1))
+        return stations
+    # Write the configuration file
+    with open(STATIONS, 'w') as handle:
+        for name, href in DEFAULT_STATIONS:
+            handle.write(f'{name} {href}\n')
+    return DEFAULT_STATIONS
+
+
 def _current_station():
-    try:
-        result = subprocess.check_output(split('ps ax'))
-        for line in result.decode().split('\n'):
-            if 'vlc -I dummy' in line:
-                station = line.rsplit(' ',1)[-1]
-                for name, url in STATIONS:
-                    if url == station:
-                        return name
-    except Exception:
-        pass
+    """ Return the current radio station. """
+    comment = '# station:'
+    result = subprocess.check_output(split('ps ax'))
+    for line in result.decode().split('\n'):
+        if comment in line:
+            return line.split(comment)[-1].strip()
     return 'Radio'
     
 
 if __name__ == '__main__':
     current = _current_station()
-    print(current[:9])
-    print('---')
-    for name, url in STATIONS:
-        print(f"{name} | terminal=false bash=\"killall vlc; vlc -I dummy {url}\"")
-    print('---')
-    print('Stop Playback | terminal=false bash="killall vlc"')
+    print(f'{current[:9]}\n---')
+    for name, url in _get_stations():
+        print(f"{name} | terminal=false bash=\"killall vlc; vlc -I dummy {url} # station:{name}\"")
+    print('---\nStop Playback | terminal=false bash="killall vlc"')

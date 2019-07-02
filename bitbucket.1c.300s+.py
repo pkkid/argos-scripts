@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
+# encoding: utf-8
 """
 Bitbucket Pull Requests
-
-References:
   Argos Extension: https://extensions.gnome.org/extension/1176/argos/
   Argos Documentation: https://github.com/p-e-w/argos
 """
-import requests, subprocess, shlex
+import argparse, json, os, requests, subprocess, shlex
+from PIL import Image, ImageDraw
+from base64 import b64encode
+from io import BytesIO
 from requests.auth import HTTPBasicAuth
 
 PRS = '{host}/rest/api/latest/inbox/pull-requests?role={role}&start=0' \
     '&limit=10&avatarSize=64&withAttributes=true&state=OPEN&order=oldest'
+CACHE = '/tmp/bitbucket.cache'
+_cache = {}
 
 
 def _get_bitbucket_auth():
@@ -37,7 +41,33 @@ def _get_bitbucket_auth():
     return host, auth
 
 
-def _getprs(host, auth, role):
+def _get_image(host, user, size=(25,25)):
+    """ Fetch the image for the specified issuetype. """
+    global _cache
+    if not _cache and os.path.isfile(CACHE):
+        with open(CACHE, 'r') as handle:
+            _cache = json.load(handle)
+    if user['name'] not in _cache:
+        response = requests.get(f'{host}{user["avatarUrl"]}')
+        # Create the 10x10 image
+        img = Image.open(BytesIO(response.content))
+        img = img.resize(size, Image.ANTIALIAS)
+        bigsize = (img.size[0]*10, img.size[1]*10)
+        mask = Image.new('L', bigsize, 0)
+        draw = ImageDraw.Draw(mask)
+        draw.ellipse((0, 0) + bigsize, fill=255)
+        mask = mask.resize(img.size, Image.ANTIALIAS)
+        img.putalpha(mask)
+        buffered = BytesIO()
+        img.save(buffered, format='PNG')
+        imgstr = b64encode(buffered.getvalue()).decode('utf8')
+        _cache[user['name']] = imgstr
+        with open(CACHE, 'w') as handle:
+            json.dump(_cache, handle)
+    return _cache[user['name']]
+
+
+def _getprs(host, auth, role, debug=False):
     """ Get pull requests. role must be one of AUTHOR, REVIEWER. """
     try:
         prs = []
@@ -48,33 +78,35 @@ def _getprs(host, auth, role):
         if response.get('errors'):
             raise Exception(response['errors'][0].get('message', 'Error fetching prs'))
         for pr in response['values']:
-            title = pr['title']
+            if debug: print(json.dumps(pr, indent=2))
+            user = pr['author']['user']['displayName'].split()[0]
+            title = pr['title'][:80] if '[UNTY-' in pr['title'] else pr['description'].strip(' *\n')[:80]
             href = pr['links']['self'][0]['href']
-            prs.append((title, href))
+            img = _get_image(host, pr['author']['user'])
+            prs.append((user, title, href, img))
         return prs
     except Exception as err:
         print(f'Err\n---\n{err}')
         raise SystemExit()
 
 
-def _print_title(prs):
+def titleize(count, suffix):
     """ Pluralize the title. """
-    total = len(prs)
-    title = f'{total} PRs'
-    if total == 0: title = 'PRs'
-    if total == 1: title = '1 PR'
-    print(title)
-    
+    suffix += 's' if count != 1 else ''
+    return f'{count} {suffix}'
+
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Bitbucket script for Argos')
+    parser.add_argument('--debug', default=False, action='store_true', help='enable debug logging')
+    opts = parser.parse_args()
+    # Display the Argos output
     host, auth = _get_bitbucket_auth()
-    prs = _getprs(host, auth, 'AUTHOR')
-    prs += _getprs(host, auth, 'REVIEWER')
-    _print_title(prs)
-    print('---')
-    for title, href in prs:
-        print(f'{title[:60].strip().lower()} | href="{href}"')
+    prs = _getprs(host, auth, 'AUTHOR', opts.debug)
+    prs += _getprs(host, auth, 'REVIEWER', opts.debug)
+    print(f'{titleize(len(prs), "PR")}\n---')
+    for user, title, href, img in prs:
+        print(f'{title[:60].strip()} | href="{href}" image="{img}"')
     if not prs:
         print(f'No pull requests | color=#888')
-    print('---')
     print(f'Go to Bitbucket | href="{host}"')

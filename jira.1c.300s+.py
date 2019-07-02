@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
+# encoding: utf-8
 """
 JIRA Open Issues.
-
-References:
   Argos Extension: https://extensions.gnome.org/extension/1176/argos/
   Argos Documentation: https://github.com/p-e-w/argos
 """
-import requests, subprocess, shlex
+import argparse, json, os, requests, subprocess, shlex
+from base64 import b64encode
 from requests.auth import HTTPBasicAuth
 
 ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done'
 SEARCH = '{host}/issues/?jql={query}'
+CACHE = '/tmp/jira.cache'
+_cache = {}
 
 
 def _get_jira_auth():
@@ -37,41 +39,57 @@ def _get_jira_auth():
     return host, auth
 
 
-def _get_issues(host, auth, query):
+def _get_image(issuetype):
+    """ Fetch the image for the specified issuetype. """
+    global _cache
+    if not _cache and os.path.isfile(CACHE):
+        with open(CACHE, 'r') as handle:
+            _cache = json.load(handle)
+    if issuetype['name'] not in _cache:
+        img = requests.get(issuetype['iconUrl'])
+        imgstr = b64encode(img.content).decode('utf8')
+        _cache[issuetype['name']] = imgstr
+        with open(CACHE, 'w') as handle:
+            json.dump(_cache, handle)
+    return _cache[issuetype['name']]
+
+
+def _get_issues(host, auth, query, debug=False):
     """ Get issues from the server. """
     try:
         issues = []
-        url = f'{host}/rest/api/2/search?fields=summary&jql={query}'
+        url = f'{host}/rest/api/2/search?fields=summary,issuetype&jql={query}'
         response = requests.get(url, auth=auth)
         for issue in response.json()['issues']:
+            if opts.debug: print(json.dumps(issue, indent=2))
             key = issue['key']
-            summary = issue['fields']['summary']
             href = issue['self']
-            issues.append((key, summary, href))
+            summary = issue['fields']['summary']
+            img = _get_image(issue['fields']['issuetype'])
+            issues.append((key, summary, href, img))
         return issues
     except Exception as err:
         print(f'Err\n---\n{err}')
         raise SystemExit()
 
 
-def _print_title(prs):
+def titleize(count, suffix):
     """ Pluralize the title. """
-    total = len(prs)
-    title = f'{total} Issues'
-    if total == 0: title = 'Issues'
-    if total == 1: title = '1 Issue'
-    print(title)
+    suffix += 's' if count != 1 else ''
+    return f'{count} {suffix}'
     
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Jira script for Argos')
+    parser.add_argument('--debug', default=False, action='store_true', help='enable debug logging')
+    opts = parser.parse_args()
+    # Display the Argos output
     host, auth = _get_jira_auth()
-    assigned = _get_issues(host, auth, ASSIGNED_ISSUES)
-    _print_title(assigned)
-    print('---')
-    for key, summary, href in assigned:
-        print(f'{key} - {summary[:40].strip()} | href="{host}/browse/{key}"')
-    if not assigned:
+    issues = _get_issues(host, auth, ASSIGNED_ISSUES, opts.debug)
+    print(f'{titleize(len(issues), "Issue")}\n---')
+    for key, summary, href, img in issues:
+        print(f'{key} - {summary[:60].strip()} | href="{host}/browse/{key}" image="{img}"')
+    if not issues:
         print(f'No pull requests | color=#888')
-    print('---')
     url = SEARCH.replace('{host}', host).replace('{query}', ASSIGNED_ISSUES)
     print(f'Go to Jira | href="{url}"')
