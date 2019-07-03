@@ -113,6 +113,7 @@ def circle(color, size=(10,10)):
 
 def titleize(count, suffix):
     """ Pluralize the title. """
+    if count == 0: return f'{suffix}s'
     suffix += 's' if count != 1 else ''
     return f'{count} {suffix}'
 
