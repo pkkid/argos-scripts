@@ -13,8 +13,9 @@ from requests.auth import HTTPBasicAuth
 
 PRS = '{host}/rest/api/latest/inbox/pull-requests?role={role}&start=0' \
     '&limit=10&avatarSize=64&withAttributes=true&state=OPEN&order=oldest'
-CACHE = '/tmp/bitbucket.cache'
-_cache = {}
+CACHENAME = '%s-cache.json' % os.path.basename(__file__).split('.')[0]
+CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
+cache = {}  # global cache object
 
 
 def _get_bitbucket_auth():
@@ -43,11 +44,11 @@ def _get_bitbucket_auth():
 
 def _get_image(host, user, size=(25,25)):
     """ Fetch the image for the specified issuetype. """
-    global _cache
-    if not _cache and os.path.isfile(CACHE):
-        with open(CACHE, 'r') as handle:
-            _cache = json.load(handle)
-    if user['name'] not in _cache:
+    global cache
+    if not cache and os.path.isfile(CACHEFILE):
+        with open(CACHEFILE, 'r') as handle:
+            cache = json.load(handle)
+    if user['name'] not in cache:
         response = requests.get(f'{host}{user["avatarUrl"]}')
         # Create the 10x10 image
         img = Image.open(BytesIO(response.content))
@@ -61,10 +62,10 @@ def _get_image(host, user, size=(25,25)):
         buffered = BytesIO()
         img.save(buffered, format='PNG')
         imgstr = b64encode(buffered.getvalue()).decode('utf8')
-        _cache[user['name']] = imgstr
-        with open(CACHE, 'w') as handle:
-            json.dump(_cache, handle)
-    return _cache[user['name']]
+        cache[user['name']] = imgstr
+        with open(CACHEFILE, 'w') as handle:
+            json.dump(cache, handle)
+    return cache[user['name']]
 
 
 def _getprs(host, auth, role, debug=False):

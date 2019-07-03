@@ -11,8 +11,9 @@ from requests.auth import HTTPBasicAuth
 
 ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done'
 SEARCH = '{host}/issues/?jql={query}'
-CACHE = '/tmp/jira.cache'
-_cache = {}
+CACHENAME = '%s-cache.json' % os.path.basename(__file__).split('.')[0]
+CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
+cache = {}  # global cache object
 
 
 def _get_jira_auth():
@@ -41,17 +42,17 @@ def _get_jira_auth():
 
 def _get_image(issuetype):
     """ Fetch the image for the specified issuetype. """
-    global _cache
-    if not _cache and os.path.isfile(CACHE):
-        with open(CACHE, 'r') as handle:
-            _cache = json.load(handle)
-    if issuetype['name'] not in _cache:
+    global cache
+    if not cache and os.path.isfile(CACHEFILE):
+        with open(CACHEFILE, 'r') as handle:
+            cache = json.load(handle)
+    if issuetype['name'] not in cache:
         img = requests.get(issuetype['iconUrl'])
         imgstr = b64encode(img.content).decode('utf8')
-        _cache[issuetype['name']] = imgstr
-        with open(CACHE, 'w') as handle:
-            json.dump(_cache, handle)
-    return _cache[issuetype['name']]
+        cache[issuetype['name']] = imgstr
+        with open(CACHEFILE, 'w') as handle:
+            json.dump(cache, handle)
+    return cache[issuetype['name']]
 
 
 def _get_issues(host, auth, query, debug=False):

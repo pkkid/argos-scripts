@@ -8,7 +8,8 @@ Internet Radio using VLC
 import os, subprocess
 from shlex import split
 
-STATIONS = os.path.expanduser('~/.config/radiostations.txt')
+STATIONSNAME = '%s-stations.txt' % os.path.basename(__file__).split('.')[0]
+STATIONSFILE = os.path.join(os.path.dirname(__file__), STATIONSNAME)
 DEFAULT_STATIONS = [
     ('90.5 WBER Alternative', 'http://wber.org/wber.m3u'),
     ('Idobi Alternative', 'http://69.46.75.98/'),
@@ -20,13 +21,13 @@ def _get_stations():
     """ Return the full list of radio stations. """
     stations = []
     # Read the configuration file
-    if os.path.isfile(STATIONS):
-        with open(STATIONS, 'r') as handle:
+    if os.path.isfile(STATIONSFILE):
+        with open(STATIONSFILE, 'r') as handle:
             for line in handle.read().strip().split('\n'):
                 stations.append(line.rsplit(' ', 1))
         return stations
     # Write the configuration file
-    with open(STATIONS, 'w') as handle:
+    with open(STATIONSFILE, 'w') as handle:
         for name, href in DEFAULT_STATIONS:
             handle.write(f'{name} {href}\n')
     return DEFAULT_STATIONS
