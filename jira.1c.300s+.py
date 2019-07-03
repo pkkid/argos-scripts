@@ -5,7 +5,12 @@ JIRA Open Issues.
   Argos Extension: https://extensions.gnome.org/extension/1176/argos/
   Argos Documentation: https://github.com/p-e-w/argos
 """
-import argparse, json, os, requests, subprocess, shlex
+import argparse
+import json
+import os
+import requests
+import subprocess
+import shlex
 from base64 import b64encode
 from requests.auth import HTTPBasicAuth
 
@@ -62,7 +67,8 @@ def _get_issues(host, auth, query, debug=False):
         url = f'{host}/rest/api/2/search?fields=summary,issuetype&jql={query}'
         response = requests.get(url, auth=auth)
         for issue in response.json()['issues']:
-            if opts.debug: print(json.dumps(issue, indent=2))
+            if opts.debug:
+                print(json.dumps(issue, indent=2))
             key = issue['key']
             href = issue['self']
             summary = issue['fields']['summary']
@@ -76,10 +82,11 @@ def _get_issues(host, auth, query, debug=False):
 
 def titleize(count, suffix):
     """ Pluralize the title. """
-    if count == 0: return f'{suffix}s'
+    if count == 0:
+        return f'{suffix}s'
     suffix += 's' if count != 1 else ''
     return f'{count} {suffix}'
-    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Jira script for Argos')

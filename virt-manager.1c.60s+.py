@@ -7,8 +7,10 @@ Symlink this script to ~/.config/argos and you should be good to go.
   Argos Extension: https://extensions.gnome.org/extension/1176/argos/
   Argos Documentation: https://github.com/p-e-w/argos
 """
-import re, subprocess
-from PIL import Image, ImageDraw
+import re
+import subprocess
+from PIL import Image
+from PIL import ImageDraw
 from base64 import b64encode
 from io import BytesIO
 from shlex import split
@@ -22,7 +24,7 @@ def _get_machines():
         matches = re.findall(r'\s*([\d-]+)\s+(\w+)\s+(\w+)', line)
         if matches:
             id, name, status = matches[0]
-            vms.append({'id':id, 'name':name, 'status':status})
+            vms.append({'id': id, 'name': name, 'status': status})
     return sorted(vms, key=lambda vm: (vm['status'], vm['name']))
 
 
@@ -40,10 +42,10 @@ def _get_ipaddr(name):
     return ''
 
 
-def circle(color, size=(10,10)):
+def circle(color, size=(10, 10)):
     """ Create a circle icon image. """
     img = Image.new('RGBA', size, color=color)
-    bigsize = (img.size[0]*10, img.size[1]*10)
+    bigsize = (img.size[0] * 10, img.size[1] * 10)
     mask = Image.new('L', bigsize, 0)
     draw = ImageDraw.Draw(mask)
     draw.ellipse((0, 0) + bigsize, fill=255)
@@ -56,7 +58,8 @@ def circle(color, size=(10,10)):
 
 def titleize(count, suffix):
     """ Pluralize the title. """
-    if count == 0: return f'{suffix}s'
+    if count == 0:
+        return f'{suffix}s'
     suffix += 's' if count != 1 else ''
     return f'{count} {suffix}'
 
