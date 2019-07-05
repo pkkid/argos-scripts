@@ -5,7 +5,8 @@ Internet Radio using VLC
   Argos Extension: https://extensions.gnome.org/extension/1176/argos/
   Argos Documentation: https://github.com/p-e-w/argos
 """
-import os, subprocess
+import os
+import subprocess
 from shlex import split
 
 STATIONSNAME = '%s-stations.txt' % os.path.basename(__file__).split('.')[0]
@@ -41,7 +42,7 @@ def _current_station():
         if comment in line:
             return line.split(comment)[-1].strip()
     return 'Radio'
-    
+
 
 if __name__ == '__main__':
     current = _current_station()

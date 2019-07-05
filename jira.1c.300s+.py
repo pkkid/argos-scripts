@@ -5,15 +5,22 @@ JIRA Open Issues.
   Argos Extension: https://extensions.gnome.org/extension/1176/argos/
   Argos Documentation: https://github.com/p-e-w/argos
 """
-import argparse, json, os, requests, subprocess, shlex
+import argparse
+import json
+import os
+import requests
+import shlex
+import subprocess
 from base64 import b64encode
 from requests.auth import HTTPBasicAuth
 
-ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done'
 SEARCH = '{host}/issues/?jql={query}'
 CACHENAME = '%s-cache.json' % os.path.basename(__file__).split('.')[0]
 CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
 cache = {}  # global cache object
+
+ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done'
+RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC'
 
 
 def _get_jira_auth():
@@ -62,7 +69,8 @@ def _get_issues(host, auth, query, debug=False):
         url = f'{host}/rest/api/2/search?fields=summary,issuetype&jql={query}'
         response = requests.get(url, auth=auth)
         for issue in response.json()['issues']:
-            if opts.debug: print(json.dumps(issue, indent=2))
+            if opts.debug:
+                print(json.dumps(issue, indent=2))
             key = issue['key']
             href = issue['self']
             summary = issue['fields']['summary']
@@ -78,7 +86,7 @@ def titleize(count, suffix):
     """ Pluralize the title. """
     suffix += 's' if count != 1 else ''
     return f'{count} {suffix}'
-    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Jira script for Argos')
@@ -87,10 +95,14 @@ if __name__ == '__main__':
     # Display the Argos output
     host, auth = _get_jira_auth()
     issues = _get_issues(host, auth, ASSIGNED_ISSUES, opts.debug)
+    recent = _get_issues(host, auth, RECENT_ISSUES, opts.debug)
     print(f'{titleize(len(issues), "Issue")}\n---')
     for key, summary, href, img in issues:
         print(f'{key} - {summary[:60].strip()} | href="{host}/browse/{key}" image="{img}"')
     if not issues:
         print(f'No pull requests | color=#888')
+    print('Recently Viewed Issues')
+    for key, summary, href, img in recent[:10]:
+        print(f'-- {key} - {summary[:60].strip()} | href="{host}/browse/{key}" image="{img}"')
     url = SEARCH.replace('{host}', host).replace('{query}', ASSIGNED_ISSUES)
     print(f'Go to Jira | href="{url}"')
