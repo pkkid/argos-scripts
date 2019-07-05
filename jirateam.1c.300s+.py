@@ -12,15 +12,14 @@ import requests
 import shlex
 import subprocess
 from base64 import b64encode
+from collections import defaultdict
 from requests.auth import HTTPBasicAuth
 
-SEARCH = '{host}/issues/?jql={query}'
+SEARCH = '{host}/issues/?filter={filter_id}'
 CACHENAME = '%s-cache.json' % os.path.basename(__file__).split('.')[0]
 CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
+FILTER_ID = None
 cache = {}  # global cache object
-
-ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done'
-RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC'
 
 
 def _get_jira_auth():
@@ -28,7 +27,9 @@ def _get_jira_auth():
     # Auth needs to be defined in some ~/.bash* file with the format:
     # export JIRA_HOST="host"
     # export JIRA_AUTH="user@example.com:token"
-    host, auth = None, None
+    # export JIRA_TEAM=12345  # filter id of search
+    global JIRATEAM_FILTER_ID
+    host, auth, filter_id = None, None, None
     result = subprocess.check_output(shlex.split(f'bash -c "grep JIRA_....= ~/.bash*"'))
     result = result.decode('utf8').strip()
     for line in result.split('\n'):
@@ -38,13 +39,14 @@ def _get_jira_auth():
             authstr = line.rsplit('=', 1)[-1]
             email, token = authstr.strip('"').split(':', 1)
             auth = HTTPBasicAuth(email, token)
-    if not host:
-        print(f'Err\n---\nUnable to find JIRA_HOST in environment.')
-        raise SystemExit()
-    if not auth:
-        print(f'Err\n---\nUnable to find JIRA_AUTH in environment.')
-        raise SystemExit()
-    return host, auth
+        if 'JIRA_TEAM' in line:
+            filter_id = line.rsplit('=', 1)[-1].strip('"')
+    # Check we found all values
+    for name, value in (('JIRA_HOST', host), ('JIRA_AUTH', auth), ('JIRA_TEAM', filter_id)):
+        if not value:
+            print(f'Err\n---\nUnable to find {name} in environment.')
+            raise SystemExit()
+    return host, auth, filter_id
 
 
 def _get_image(issuetype):
@@ -62,30 +64,28 @@ def _get_image(issuetype):
     return cache[issuetype['name']]
 
 
-def _get_issues(host, auth, query, debug=False):
+def _get_issues(host, auth, filter_id, debug=False):
     """ Get issues from the server. """
     try:
-        issues = []
-        url = f'{host}/rest/api/2/search?fields=summary,issuetype&jql={query}'
+        # Get the JQL Query from the api
+        issues = defaultdict(list)
+        jql = requests.get(f'{host}/rest/api/2/filter/{filter_id}', auth=auth).json()['jql']
+        url = f'{host}/rest/api/2/search?fields=summary,issuetype,assignee,status&jql={jql}'
         response = requests.get(url, auth=auth)
         for issue in response.json()['issues']:
             if opts.debug:
                 print(json.dumps(issue, indent=2))
-            key = issue['key']
+            key = issue['key'].replace('UNTY-', '')
             href = issue['self']
             summary = issue['fields']['summary']
+            name = issue['fields']['assignee']['displayName']
             img = _get_image(issue['fields']['issuetype'])
-            issues.append((key, summary, href, img))
+            status = issue['fields']['status']['name']
+            issues[name].append((key, summary, href, img, status))
         return issues
     except Exception as err:
         print(f'Err\n---\n{err}')
         raise SystemExit()
-
-
-def titleize(count, suffix):
-    """ Pluralize the title. """
-    suffix += 's' if count != 1 else ''
-    return f'{count} {suffix}'
 
 
 if __name__ == '__main__':
@@ -93,16 +93,14 @@ if __name__ == '__main__':
     parser.add_argument('--debug', default=False, action='store_true', help='enable debug logging')
     opts = parser.parse_args()
     # Display the Argos output
-    host, auth = _get_jira_auth()
-    issues = _get_issues(host, auth, ASSIGNED_ISSUES, opts.debug)
-    recent = _get_issues(host, auth, RECENT_ISSUES, opts.debug)
-    print(f'{titleize(len(issues), "Issue")}\n---')
-    for key, summary, href, img in issues:
-        print(f'{key} - {summary[:60].strip()} | href="{host}/browse/{key}" image="{img}"')
+    host, auth, filter_id = _get_jira_auth()
+    issues = _get_issues(host, auth, filter_id, opts.debug)
+    print(f'Teams\n---')
+    for name in sorted(issues.keys()):
+        print(f"{name} <span color='#888'>({len(issues[name])} issues)</span>")
+        for key, summary, href, img, status in issues[name][:10]:
+            print(f'-- {status.upper()} - {key} - {summary[:50].strip()} | size=10 color=#bbb href="{host}/browse/{key}" image="{img}"')  # noqa
     if not issues:
         print(f'No pull requests | color=#888')
-    print('Recently Viewed Issues')
-    for key, summary, href, img in recent[:10]:
-        print(f'-- {key} - {summary[:60].strip()} | color=#bbb href="{host}/browse/{key}" image="{img}"')
-    url = SEARCH.replace('{host}', host).replace('{query}', ASSIGNED_ISSUES)
-    print(f'Go to Jira | href="{url}"')
+    url = SEARCH.replace('{host}', host).replace('{filter_id}', filter_id)
+    print(f'---\nGo to Jira {" "*160}.| href="{url}"')
