@@ -84,6 +84,8 @@ def _get_issues(host, auth, query, debug=False):
 
 def titleize(count, suffix):
     """ Pluralize the title. """
+    if count == 0:
+        return f'{suffix}s'
     suffix += 's' if count != 1 else ''
     return f'{count} {suffix}'
 

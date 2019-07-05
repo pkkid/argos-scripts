@@ -11,7 +11,8 @@ import os
 import requests
 import subprocess
 import shlex
-from PIL import Image, ImageDraw
+from PIL import Image
+from PIL import ImageDraw
 from base64 import b64encode
 from io import BytesIO
 from requests.auth import HTTPBasicAuth
@@ -54,23 +55,26 @@ def _get_image(host, user, size=(25, 25)):
         with open(CACHEFILE, 'r') as handle:
             cache = json.load(handle)
     if user['name'] not in cache:
-        response = requests.get(f'{host}{user["avatarUrl"]}')
-        # Create the 10x10 image
-        img = Image.open(BytesIO(response.content))
-        img = img.resize(size, Image.ANTIALIAS)
-        bigsize = (img.size[0] * 10, img.size[1] * 10)
-        mask = Image.new('L', bigsize, 0)
-        draw = ImageDraw.Draw(mask)
-        draw.ellipse((0, 0) + bigsize, fill=255)
-        mask = mask.resize(img.size, Image.ANTIALIAS)
-        img.putalpha(mask)
-        buffered = BytesIO()
-        img.save(buffered, format='PNG')
-        imgstr = b64encode(buffered.getvalue()).decode('utf8')
-        cache[user['name']] = imgstr
-        with open(CACHEFILE, 'w') as handle:
-            json.dump(cache, handle)
-    return cache[user['name']]
+        try:
+            response = requests.get(f'{host}{user["avatarUrl"]}')
+            # Create the 10x10 image
+            img = Image.open(BytesIO(response.content))
+            img = img.resize(size, Image.ANTIALIAS)
+            bigsize = (img.size[0] * 10, img.size[1] * 10)
+            mask = Image.new('L', bigsize, 0)
+            draw = ImageDraw.Draw(mask)
+            draw.ellipse((0, 0) + bigsize, fill=255)
+            mask = mask.resize(img.size, Image.ANTIALIAS)
+            img.putalpha(mask)
+            buffered = BytesIO()
+            img.save(buffered, format='PNG')
+            imgstr = b64encode(buffered.getvalue()).decode('utf8')
+            cache[user['name']] = imgstr
+            with open(CACHEFILE, 'w') as handle:
+                json.dump(cache, handle)
+        except Exception:
+            return circle('#918275', size)
+    return cache.get(user['name'], '')
 
 
 def _getprs(host, auth, role, debug=False):
@@ -87,7 +91,10 @@ def _getprs(host, auth, role, debug=False):
             if debug:
                 print(json.dumps(pr, indent=2))
             user = pr['author']['user']['displayName'].split()[0]
-            title = pr['title'][:80] if '[UNTY-' in pr['title'] else pr['description'].strip(' *\n')[:80]
+            title = pr['title'][:80]
+            if '[UNTY-' not in pr['title']:
+                title = pr['description'].strip().replace('*', '').replace('\n', '')
+                title = ' '.join(title.split())[:80]
             href = pr['links']['self'][0]['href']
             img = _get_image(host, pr['author']['user'])
             prs.append((user, title, href, img))
@@ -97,8 +104,24 @@ def _getprs(host, auth, role, debug=False):
         raise SystemExit()
 
 
+def circle(color, size=(10, 10)):
+    """ Create a circle icon image. """
+    img = Image.new('RGBA', size, color=color)
+    bigsize = (img.size[0] * 10, img.size[1] * 10)
+    mask = Image.new('L', bigsize, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0) + bigsize, fill=255)
+    mask = mask.resize(img.size, Image.ANTIALIAS)
+    img.putalpha(mask)
+    buffered = BytesIO()
+    img.save(buffered, format='PNG')
+    return b64encode(buffered.getvalue()).decode('utf8')
+
+
 def titleize(count, suffix):
     """ Pluralize the title. """
+    if count == 0:
+        return f'{suffix}s'
     suffix += 's' if count != 1 else ''
     return f'{count} {suffix}'
 

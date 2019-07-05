@@ -9,7 +9,8 @@ Symlink this script to ~/.config/argos and you should be good to go.
 """
 import re
 import subprocess
-from PIL import Image, ImageDraw
+from PIL import Image
+from PIL import ImageDraw
 from base64 import b64encode
 from io import BytesIO
 from shlex import split
@@ -29,12 +30,15 @@ def _get_machines():
 
 def _get_ipaddr(name):
     """ Return the ip address of the specified machine name. """
-    result = subprocess.check_output(split(f'virsh -c qemu:///system domifaddr {name} --source agent'))
-    for line in result.decode().split('\n'):
-        if 'eth0' in line:
-            name, mac, protocol, ipaddr = line.split()
-            if protocol == 'ipv4' and ipaddr != 'N/A':
-                return ipaddr.split('/')[0]
+    try:
+        result = subprocess.check_output(split(f'virsh -c qemu:///system domifaddr {name} --source agent'))
+        for line in result.decode().split('\n'):
+            if 'eth0' in line:
+                name, mac, protocol, ipaddr = line.split()
+                if protocol == 'ipv4' and ipaddr != 'N/A':
+                    return ipaddr.split('/')[0]
+    except Exception:
+        pass
     return ''
 
 
@@ -54,6 +58,8 @@ def circle(color, size=(10, 10)):
 
 def titleize(count, suffix):
     """ Pluralize the title. """
+    if count == 0:
+        return f'{suffix}s'
     suffix += 's' if count != 1 else ''
     return f'{count} {suffix}'
 
