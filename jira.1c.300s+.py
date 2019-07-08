@@ -19,8 +19,8 @@ CACHENAME = '%s-cache.json' % os.path.basename(__file__).split('.')[0]
 CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
 cache = {}  # global cache object
 
-ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done'
-RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC'
+ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done ORDER BY issueType'
+RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC ORDER BY issueType'
 
 
 def _get_jira_auth():
