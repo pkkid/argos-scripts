@@ -103,4 +103,4 @@ if __name__ == '__main__':
     if not issues:
         print(f'No pull requests | color=#888')
     url = SEARCH.replace('{host}', host).replace('{filter_id}', filter_id)
-    print(f'---\nGo to Jira {" "*160}.| href="{url}"')
+    print(f'---\nGo to Jira {" "*160}<span color="#444">.</span>| href="{url}"')

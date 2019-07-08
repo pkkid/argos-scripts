@@ -107,4 +107,4 @@ if __name__ == '__main__':
     for key, summary, href, img in recent[:10]:
         print(f'-- {key} - {summary[:60].strip()} | color=#bbb href="{host}/browse/{key}" image="{img}"')
     url = SEARCH.replace('{host}', host).replace('{query}', ASSIGNED_ISSUES)
-    print(f'Go to Jira | href="{url}"')
+    print(f'Go to Jira {" "*160}<span color="#444">.</span>| href="{url}"')
