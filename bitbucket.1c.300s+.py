@@ -77,6 +77,13 @@ def _get_image(host, user, size=(25, 25)):
     return cache.get(user['name'], '')
 
 
+def _is_reviewed(user, reviewers):
+    for reviewer in reviewers:
+        if reviewer['status'] == 'NEEDS_WORK' and reviewer['user']['name'] == user:
+            return True
+    return False
+
+
 def _getprs(host, auth, role, debug=False):
     """ Get pull requests. role must be one of AUTHOR, REVIEWER. """
     try:
@@ -90,6 +97,10 @@ def _getprs(host, auth, role, debug=False):
         for pr in response['values']:
             if debug:
                 print(json.dumps(pr, indent=2))
+                print('---')
+                print(auth.username)
+            if _is_reviewed(auth.username, pr['reviewers']):
+                continue
             user = pr['author']['user']['displayName'].split()[0]
             title = pr['title'][:80]
             if '[UNTY-' not in pr['title']:
