@@ -99,7 +99,7 @@ if __name__ == '__main__':
     for name in sorted(issues.keys()):
         print(f"{name} <span color='#888'>({len(issues[name])} issues)</span>")
         for key, summary, href, img, status in issues[name][:10]:
-            print(f'-- {status.upper()} - {key} - {summary[:50].strip()} | size=10 color=#bbb href="{host}/browse/{key}" image="{img}"')  # noqa
+            print(f'-- {status.upper()} - {key} - {summary[:50].strip()} | size=10 color=#bbb href="{host}/browse/UNTY-{key}" image="{img}"')  # noqa
     if not issues:
         print(f'No pull requests | color=#888')
     url = SEARCH.replace('{host}', host).replace('{filter_id}', filter_id)
