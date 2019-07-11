@@ -95,7 +95,7 @@ if __name__ == '__main__':
     # Display the Argos output
     host, auth, filter_id = _get_jira_auth()
     issues = _get_issues(host, auth, filter_id, opts.debug)
-    print(f'Teams\n---')
+    print(f'Team\n---')
     for name in sorted(issues.keys()):
         print(f"{name} <span color='#888'>({len(issues[name])} issues)</span>")
         for key, summary, href, img, status in issues[name][:10]:
