@@ -10,12 +10,19 @@ Useful scripts to run in Argos or Bitbar.
 
 1. You can install Argos from the gnome-extensions website.
 2. Install requirements: `sudo -H pip3 install PIL requests`
-2. Copy and paste these scripts `~/.config/argos/` and make them executable.
-3. If using the Bitbucket script, add your auth info to your .bash_profile.
-   <br/>`export JIRA_HOST="https://jirahost.com"`
-   <br/>`export JIRA_AUTH="email:token"`
-4. If using the JIRA script, add your auth info to your .bash_profile.
-   <br/>`export BITBUCKET_HOST="https://bitbuckethost.com"`
-   <br/>`export BITBUCKET_AUTH="username:token"`
-5. If using the radio script, you need vlc installed and on the system path.
-6. Enjoy.
+3. Copy and paste these scripts `~/.config/argos/` and make them executable.
+4. If using the radio script, you need vlc installed and on the system path.
+5. If using the Bitbucket or Jira scripts, add a configuration file at `~/.config/atlassian.json`.
+
+```json
+{
+  "jira": {
+    "host": "https://example.atlassian.net",
+    "auth": "user@example.com:ke4xExampleToken96C",
+    "team_filter": "12345"
+  },
+  "bitbucket": {
+    "host": "https://git.example.net",
+    "auth": "username:MTg4MxExampleTokenTLE6"
+  }  
+}

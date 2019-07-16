@@ -9,8 +9,6 @@ import argparse
 import json
 import os
 import requests
-import subprocess
-import shlex
 from PIL import Image
 from PIL import ImageDraw
 from base64 import b64encode
@@ -25,26 +23,11 @@ cache = {}  # global cache object
 
 
 def _get_bitbucket_auth():
-    """ Authenticate with JIRA. """
-    # Auth needs to be defined in some ~/.bash* file with the format:
-    # export BITBUCKET_HOST="host"
-    # export BITBUCKET_AUTH="user:token"
-    host, auth = None, None
-    result = subprocess.check_output(shlex.split(f'bash -c "grep BITBUCKET_....= ~/.bash*"'))
-    result = result.decode('utf8').strip()
-    for line in result.split('\n'):
-        if 'BITBUCKET_HOST' in line:
-            host = line.rsplit('=', 1)[-1].strip('"')
-        if 'BITBUCKET_AUTH' in line:
-            authstr = line.rsplit('=', 1)[-1]
-            user, token = authstr.strip('"').split(':', 1)
-            auth = HTTPBasicAuth(user, token)
-    if not host:
-        print(f'Err\n---\nUnable to find BITBUCKET_HOST in environment.')
-        raise SystemExit()
-    if not auth:
-        print(f'Err\n---\nUnable to find BITBUCKET_AUTH in environment.')
-        raise SystemExit()
+    """ Fetch Bitbucket authentication token. """
+    with open(os.path.expanduser('~/.config/atlassian.json')) as handle:
+        CONFIG = json.load(handle)
+    host = CONFIG['bitbucket']['host']
+    auth = HTTPBasicAuth(*CONFIG['bitbucket']['auth'].split(':'))
     return host, auth
 
 
@@ -103,8 +86,8 @@ def _getprs(host, auth, role, debug=False):
                 continue
             user = pr['author']['user']['displayName'].split()[0]
             title = pr['title'][:80]
-            if '[UNTY-' not in pr['title']:
-                title = pr['description'].strip().replace('*', '').replace('\n', '')
+            if pr['title'][:6] not in ('[UNTY-', '[NO-JI'):
+                title = pr.get('description', '').strip().replace('*', '').replace('\n', '')
                 title = ' '.join(title.split())[:80]
             href = pr['links']['self'][0]['href']
             img = _get_image(host, pr['author']['user'])

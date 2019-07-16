@@ -9,8 +9,6 @@ import argparse
 import json
 import os
 import requests
-import shlex
-import subprocess
 from base64 import b64encode
 from requests.auth import HTTPBasicAuth
 
@@ -24,26 +22,11 @@ RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC'
 
 
 def _get_jira_auth():
-    """ Authenticate with JIRA. """
-    # Auth needs to be defined in some ~/.bash* file with the format:
-    # export JIRA_HOST="host"
-    # export JIRA_AUTH="user@example.com:token"
-    host, auth = None, None
-    result = subprocess.check_output(shlex.split(f'bash -c "grep JIRA_....= ~/.bash*"'))
-    result = result.decode('utf8').strip()
-    for line in result.split('\n'):
-        if 'JIRA_HOST' in line:
-            host = line.rsplit('=', 1)[-1].strip('"')
-        if 'JIRA_AUTH' in line:
-            authstr = line.rsplit('=', 1)[-1]
-            email, token = authstr.strip('"').split(':', 1)
-            auth = HTTPBasicAuth(email, token)
-    if not host:
-        print(f'Err\n---\nUnable to find JIRA_HOST in environment.')
-        raise SystemExit()
-    if not auth:
-        print(f'Err\n---\nUnable to find JIRA_AUTH in environment.')
-        raise SystemExit()
+    """ Fetch Jira authentication token. """
+    with open(os.path.expanduser('~/.config/atlassian.json')) as handle:
+        CONFIG = json.load(handle)
+    host = CONFIG['jira']['host']
+    auth = HTTPBasicAuth(*CONFIG['jira']['auth'].split(':'))
     return host, auth
 
 

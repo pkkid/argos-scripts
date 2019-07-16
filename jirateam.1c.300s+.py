@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 """
-JIRA Open Issues.
+JIRA Team Issues.
   Argos Extension: https://extensions.gnome.org/extension/1176/argos/
   Argos Documentation: https://github.com/p-e-w/argos
 """
@@ -9,8 +9,6 @@ import argparse
 import json
 import os
 import requests
-import shlex
-import subprocess
 from base64 import b64encode
 from collections import defaultdict
 from requests.auth import HTTPBasicAuth
@@ -23,30 +21,13 @@ cache = {}  # global cache object
 
 
 def _get_jira_auth():
-    """ Authenticate with JIRA. """
-    # Auth needs to be defined in some ~/.bash* file with the format:
-    # export JIRA_HOST="host"
-    # export JIRA_AUTH="user@example.com:token"
-    # export JIRA_TEAM=12345  # filter id of search
-    global JIRATEAM_FILTER_ID
-    host, auth, filter_id = None, None, None
-    result = subprocess.check_output(shlex.split(f'bash -c "grep JIRA_....= ~/.bash*"'))
-    result = result.decode('utf8').strip()
-    for line in result.split('\n'):
-        if 'JIRA_HOST' in line:
-            host = line.rsplit('=', 1)[-1].strip('"')
-        if 'JIRA_AUTH' in line:
-            authstr = line.rsplit('=', 1)[-1]
-            email, token = authstr.strip('"').split(':', 1)
-            auth = HTTPBasicAuth(email, token)
-        if 'JIRA_TEAM' in line:
-            filter_id = line.rsplit('=', 1)[-1].strip('"')
-    # Check we found all values
-    for name, value in (('JIRA_HOST', host), ('JIRA_AUTH', auth), ('JIRA_TEAM', filter_id)):
-        if not value:
-            print(f'Err\n---\nUnable to find {name} in environment.')
-            raise SystemExit()
-    return host, auth, filter_id
+    """ Fetch Jira authentication token. """
+    with open(os.path.expanduser('~/.config/atlassian.json')) as handle:
+        CONFIG = json.load(handle)
+    host = CONFIG['jira']['host']
+    auth = HTTPBasicAuth(*CONFIG['jira']['auth'].split(':'))
+    filterid = CONFIG['jira']['team_filter']
+    return host, auth, filterid
 
 
 def _get_image(issuetype):
@@ -64,12 +45,12 @@ def _get_image(issuetype):
     return cache[issuetype['name']]
 
 
-def _get_issues(host, auth, filter_id, debug=False):
+def _get_issues(host, auth, filterid, debug=False):
     """ Get issues from the server. """
     try:
         # Get the JQL Query from the api
         issues = defaultdict(list)
-        jql = requests.get(f'{host}/rest/api/2/filter/{filter_id}', auth=auth).json()['jql']
+        jql = requests.get(f'{host}/rest/api/2/filter/{filterid}', auth=auth).json()['jql']
         url = f'{host}/rest/api/2/search?fields=summary,issuetype,assignee,status&jql={jql}'
         response = requests.get(url, auth=auth)
         for issue in response.json()['issues']:
@@ -93,8 +74,8 @@ if __name__ == '__main__':
     parser.add_argument('--debug', default=False, action='store_true', help='enable debug logging')
     opts = parser.parse_args()
     # Display the Argos output
-    host, auth, filter_id = _get_jira_auth()
-    issues = _get_issues(host, auth, filter_id, opts.debug)
+    host, auth, filterid = _get_jira_auth()
+    issues = _get_issues(host, auth, filterid, opts.debug)
     print(f'Team\n---')
     for name in sorted(issues.keys()):
         print(f"{name} <span color='#888'>({len(issues[name])} issues)</span>")
@@ -102,5 +83,5 @@ if __name__ == '__main__':
             print(f'-- {status.upper()} - {key} - {summary[:50].strip()} | size=10 color=#bbb href="{host}/browse/UNTY-{key}" image="{img}"')  # noqa
     if not issues:
         print(f'No pull requests | color=#888')
-    url = SEARCH.replace('{host}', host).replace('{filter_id}', filter_id)
+    url = SEARCH.replace('{host}', host).replace('{filterid}', filterid)
     print(f'---\nGo to Jira {" "*160}<span color="#444">.</span>| href="{url}"')
