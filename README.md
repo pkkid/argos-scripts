@@ -26,3 +26,4 @@ Useful scripts to run in Argos or Bitbar.
     "auth": "username:MTg4MxExampleTokenTLE6"
   }  
 }
+```
