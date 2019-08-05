@@ -18,7 +18,8 @@ CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
 cache = {}  # global cache object
 
 ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done ORDER BY issueType'
-WATCHED_ISSUES = 'watcher = currentUser() AND (assignee != currentUser() OR assignee is empty) AND statusCategory != Done AND issuetype in (Bug, Escalation) ORDER by lastViewed'
+WATCHED_ISSUES = 'watcher = currentUser() AND (assignee != currentUser() OR assignee is empty)' \
+    ' AND statusCategory != Done ORDER BY updated DESC'
 RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC'
 
 
