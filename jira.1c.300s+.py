@@ -91,11 +91,17 @@ if __name__ == '__main__':
         print(f'No assigned issues | color=#888')
     # Watched Issues and Escalations
     print(f'---\nWatching {len(watched)} Issues')
-    for key, summary, href, img in watched[:10]:
+    for key, summary, href, img in watched[:15]:
         print(f'-- {key} - {summary[:60].strip()} | size=10 color=#bbb href="{host}/browse/{key}" image="{img}"')
+    url = SEARCH.replace('{host}', host).replace('{query}', WATCHED_ISSUES)
+    print(f'-- View All Watched Issues | size=10 color="#bbb" href="{host}/browse/{key}"')
     # Recently Viewed Issues
     print('Recently Viewed Issues')
     for key, summary, href, img in recent[:10]:
         print(f'-- {key} - {summary[:60].strip()} | size=10 color=#bbb href="{host}/browse/{key}" image="{img}"')
+    url = SEARCH.replace('{host}', host).replace('{query}', RECENT_ISSUES)
+    print(f'-- View All Recent Issues | size=10 color="#bbb" href="{host}/browse/{key}"')
+    # Link to Jira
     url = SEARCH.replace('{host}', host).replace('{query}', ASSIGNED_ISSUES)
-    print(f'Go to Jira {" "*160}<span color="#444">.</span>| href="{url}"')
+    print(f'Go to Jira {" "*130}<span color="#444">.</span>| href="{url}"')
+    
