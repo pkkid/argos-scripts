@@ -18,6 +18,7 @@ CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
 cache = {}  # global cache object
 
 ASSIGNED_ISSUES = 'assignee = currentUser() AND statusCategory != done ORDER BY issueType'
+WATCHED_ISSUES = 'watcher = currentUser() AND (assignee != currentUser() OR assignee is empty) AND statusCategory != Done AND issuetype in (Bug, Escalation) ORDER by lastViewed'
 RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC'
 
 
@@ -80,14 +81,21 @@ if __name__ == '__main__':
     # Display the Argos output
     host, auth = _get_jira_auth()
     issues = _get_issues(host, auth, ASSIGNED_ISSUES, opts.debug)
+    watched = _get_issues(host, auth, WATCHED_ISSUES, opts.debug)
     recent = _get_issues(host, auth, RECENT_ISSUES, opts.debug)
+    # Assigned Issues
     print(f'{titleize(len(issues), "Issue")}\n---')
     for key, summary, href, img in issues:
         print(f'{key} - {summary[:60].strip()} | href="{host}/browse/{key}" image="{img}"')
     if not issues:
-        print(f'No pull requests | color=#888')
+        print(f'No assigned issues | color=#888')
+    # Watched Issues and Escalations
+    print(f'---\nWatching {len(watched)} Issues')
+    for key, summary, href, img in watched[:10]:
+        print(f'-- {key} - {summary[:60].strip()} | size=10 color=#bbb href="{host}/browse/{key}" image="{img}"')
+    # Recently Viewed Issues
     print('Recently Viewed Issues')
     for key, summary, href, img in recent[:10]:
-        print(f'-- {key} - {summary[:60].strip()} | color=#bbb href="{host}/browse/{key}" image="{img}"')
+        print(f'-- {key} - {summary[:60].strip()} | size=10 color=#bbb href="{host}/browse/{key}" image="{img}"')
     url = SEARCH.replace('{host}', host).replace('{query}', ASSIGNED_ISSUES)
     print(f'Go to Jira {" "*160}<span color="#444">.</span>| href="{url}"')

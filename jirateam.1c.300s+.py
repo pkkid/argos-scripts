@@ -13,7 +13,7 @@ from base64 import b64encode
 from collections import defaultdict
 from requests.auth import HTTPBasicAuth
 
-SEARCH = '{host}/issues/?filter={filter_id}'
+SEARCH = '{host}/issues/?filter={filterid}'
 CACHENAME = '%s-cache.json' % os.path.basename(__file__).split('.')[0]
 CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
 FILTER_ID = None
