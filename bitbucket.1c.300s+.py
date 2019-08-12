@@ -124,8 +124,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Bitbucket script for Argos')
     parser.add_argument('--debug', default=False, action='store_true', help='enable debug logging')
     opts = parser.parse_args()
-    # Display the Argos output
+    # Check the domain is online
     host, auth = _get_bitbucket_auth()
+    try:
+        requests.head(host, timeout=3)
+    except Exception:
+        print(' ')
+        raise SystemExit()  # show nothing
+    # Display the Argos output
     prs = _getprs(host, auth, 'AUTHOR', opts.debug)
     prs += _getprs(host, auth, 'REVIEWER', opts.debug)
     print(f'{titleize(len(prs), "PR")}\n---')
