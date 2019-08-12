@@ -22,7 +22,7 @@ cache = {}  # global cache object
 
 def _get_jira_auth():
     """ Fetch Jira authentication token. """
-    with open(os.path.expanduser('~/.config/atlassian.json')) as handle:
+    with open(os.path.expanduser('~/.config/mytools.json')) as handle:
         CONFIG = json.load(handle)
     host = CONFIG['jira']['host']
     auth = HTTPBasicAuth(*CONFIG['jira']['auth'].split(':'))
