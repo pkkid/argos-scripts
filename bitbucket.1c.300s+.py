@@ -24,7 +24,7 @@ cache = {}  # global cache object
 
 def _get_bitbucket_auth():
     """ Fetch Bitbucket authentication token. """
-    with open(os.path.expanduser('~/.config/atlassian.json')) as handle:
+    with open(os.path.expanduser('~/.config/mytools.json')) as handle:
         CONFIG = json.load(handle)
     host = CONFIG['bitbucket']['host']
     auth = HTTPBasicAuth(*CONFIG['bitbucket']['auth'].split(':'))
