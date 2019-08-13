@@ -6,10 +6,10 @@ JIRA Open Issues.
   Argos Documentation: https://github.com/p-e-w/argos
 """
 import argparse
-import json
+import jstyleson
 import os
 import requests
-from base64 import b64encode
+from base64 import b64encode, b64decode
 from requests.auth import HTTPBasicAuth
 
 SEARCH = '{host}/issues/?jql={query}'
@@ -22,12 +22,24 @@ WATCHED_ISSUES = 'watcher = currentUser() AND statusCategory != done ORDER BY up
 RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC'
 
 
+def _getkey(lookup):
+    """ Fetch the specified key. """
+    group, name = lookup.lower().split('.')
+    for path in ('~/.config/keys.jsonc', '~/Private/keys/keys.jsonc'):
+        filepath = os.path.expanduser(path)
+        if not os.path.exists(filepath): continue  # noqa
+        with open(filepath, 'r') as handle:
+            value = jstyleson.load(handle).get(group, {}).get(name)
+            if value is None: continue  # noqa
+            if not value.startswith('b64:'): return value  # noqa
+            return b64decode(value[4:]).decode('utf8')
+    raise Exception(f'Key not specified: {lookup}')
+
+
 def _get_jira_auth():
     """ Fetch Jira authentication token. """
-    with open(os.path.expanduser('~/.config/mytools.json')) as handle:
-        CONFIG = json.load(handle)
-    host = CONFIG['jira']['host']
-    auth = HTTPBasicAuth(*CONFIG['jira']['auth'].split(':'))
+    host = _getkey('jira.host')
+    auth = HTTPBasicAuth(*_getkey('jira.auth').split(':'))
     return host, auth
 
 
@@ -36,13 +48,13 @@ def _get_image(issuetype):
     global cache
     if not cache and os.path.isfile(CACHEFILE):
         with open(CACHEFILE, 'r') as handle:
-            cache = json.load(handle)
+            cache = jstyleson.load(handle)
     if issuetype['name'] not in cache:
         img = requests.get(issuetype['iconUrl'])
         imgstr = b64encode(img.content).decode('utf8')
         cache[issuetype['name']] = imgstr
         with open(CACHEFILE, 'w') as handle:
-            json.dump(cache, handle)
+            jstyleson.dump(cache, handle)
     return cache[issuetype['name']]
 
 
@@ -54,7 +66,7 @@ def _get_issues(host, auth, query, debug=False):
         response = requests.get(url, auth=auth)
         for issue in response.json()['issues']:
             if opts.debug:
-                print(json.dumps(issue, indent=2))
+                print(jstyleson.dumps(issue, indent=2))
             key = issue['key']
             href = issue['self']
             summary = issue['fields']['summary']

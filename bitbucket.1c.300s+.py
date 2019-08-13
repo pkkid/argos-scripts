@@ -6,12 +6,12 @@ Bitbucket Pull Requests
   Argos Documentation: https://github.com/p-e-w/argos
 """
 import argparse
-import json
+import jstyleson
 import os
 import requests
 from PIL import Image
 from PIL import ImageDraw
-from base64 import b64encode
+from base64 import b64encode, b64decode
 from io import BytesIO
 from requests.auth import HTTPBasicAuth
 
@@ -22,12 +22,24 @@ CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
 cache = {}  # global cache object
 
 
+def _getkey(lookup):
+    """ Fetch the specified key. """
+    group, name = lookup.lower().split('.')
+    for path in ('~/.config/keys.jsonc', '~/Private/keys/keys.jsonc'):
+        filepath = os.path.expanduser(path)
+        if not os.path.exists(filepath): continue  # noqa
+        with open(filepath, 'r') as handle:
+            value = jstyleson.load(handle).get(group, {}).get(name)
+            if value is None: continue  # noqa
+            if not value.startswith('b64:'): return value  # noqa
+            return b64decode(value[4:]).decode('utf8')
+    raise Exception(f'Key not specified: {lookup}')
+
+
 def _get_bitbucket_auth():
     """ Fetch Bitbucket authentication token. """
-    with open(os.path.expanduser('~/.config/mytools.json')) as handle:
-        CONFIG = json.load(handle)
-    host = CONFIG['bitbucket']['host']
-    auth = HTTPBasicAuth(*CONFIG['bitbucket']['auth'].split(':'))
+    host = _getkey('bitbucket.host')
+    auth = HTTPBasicAuth(*_getkey('bitbucket.auth').split(':'))
     return host, auth
 
 
@@ -36,7 +48,7 @@ def _get_image(host, user, size=(25, 25)):
     global cache
     if not cache and os.path.isfile(CACHEFILE):
         with open(CACHEFILE, 'r') as handle:
-            cache = json.load(handle)
+            cache = jstyleson.load(handle)
     if user['name'] not in cache:
         try:
             response = requests.get(f'{host}{user["avatarUrl"]}')
@@ -54,7 +66,7 @@ def _get_image(host, user, size=(25, 25)):
             imgstr = b64encode(buffered.getvalue()).decode('utf8')
             cache[user['name']] = imgstr
             with open(CACHEFILE, 'w') as handle:
-                json.dump(cache, handle)
+                jstyleson.dump(cache, handle)
         except Exception:
             return circle('#918275', size)
     return cache.get(user['name'], '')
@@ -79,7 +91,7 @@ def _getprs(host, auth, role, debug=False):
             raise Exception(response['errors'][0].get('message', 'Error fetching prs'))
         for pr in response['values']:
             if debug:
-                print(json.dumps(pr, indent=2))
+                print(jstyleson.dumps(pr, indent=2))
                 print('---')
                 print(auth.username)
             if _is_reviewed(auth.username, pr['reviewers']):
