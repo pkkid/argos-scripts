@@ -105,7 +105,9 @@ def _getprs(host, auth, role, debug=False):
             img = _get_image(host, pr['author']['user'])
             fromref = pr['fromRef']['displayId'][:30]
             toref = pr['toRef']['displayId'][:30]
-            prs.append((user, title, href, fromref, toref, img))
+            conflict = '<span color="#a70">conflict</span> - ' if pr['properties']['mergeResult']['outcome'] == 'CONFLICTED' else ''
+            # import json; print(json.dumps(pr, indent=2))  # noqa REMOVE
+            prs.append((user, title, href, fromref, toref, conflict, img))
         return prs
     except Exception as err:
         print(f'Err\n---\n{err}')
@@ -143,8 +145,8 @@ if __name__ == '__main__':
     prs = _getprs(host, auth, 'AUTHOR', opts.debug)
     prs += _getprs(host, auth, 'REVIEWER', opts.debug)
     print(f'{titleize(len(prs), "PR")}\n---')
-    for user, title, href, fromref, toref, img in prs:
-        print(f'{title[:60].strip()}\\n<span color="#999"><small>{fromref} → {toref}</small></span> | href="{href}" image="{img}"')
+    for user, title, href, fromref, toref, conflict, img in prs:
+        print(f'{title[:60].strip()}\\n<span color="#999"><small>{conflict}{fromref} → {toref}</small></span> | href="{href}" image="{img}"')
     if not prs:
         print(f'No pull requests | color=#888')
     print(f'Go to Bitbucket | href="{host}"')
