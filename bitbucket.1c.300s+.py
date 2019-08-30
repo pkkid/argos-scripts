@@ -105,7 +105,7 @@ def _getprs(host, auth, role, debug=False):
             img = _get_image(host, pr['author']['user'])
             fromref = pr['fromRef']['displayId'][:30]
             toref = pr['toRef']['displayId'][:30]
-            conflict = ' - <span color="#a70">conflict</span>' if pr['properties']['mergeResult']['outcome'] == 'CONFLICTED' else ''
+            conflict = ' - <span color="#a70">conflict</span>' if pr['properties']['mergeResult']['outcome'] == 'CONFLICTED' else ''  # noqa
             # import json; print(json.dumps(pr, indent=2))  # noqa REMOVE
             prs.append((user, title, href, fromref, toref, conflict, img))
         return prs
@@ -146,7 +146,8 @@ if __name__ == '__main__':
     prs += _getprs(host, auth, 'REVIEWER', opts.debug)
     print(f'{titleize(len(prs), "PR")}\n---')
     for user, title, href, fromref, toref, conflict, img in prs:
-        print(f'{title[:60].strip()}\\n<span color="#999"><small>{fromref} → {toref}{conflict}</small></span> | href="{href}" image="{img}"')
+        print(f'{title[:60].strip()}\\n<span color="#999"><small>{fromref} → {toref}{conflict}</small></span> \
+             | href="{href}" image="{img}"')
     if not prs:
         print(f'No pull requests | color=#888')
     print(f'Go to Bitbucket | href="{host}"')
