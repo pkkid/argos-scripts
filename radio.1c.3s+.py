@@ -50,3 +50,4 @@ if __name__ == '__main__':
     for name, url in _get_stations():
         print(f"{name} | terminal=false bash=\"killall vlc; vlc -I dummy {url} # station:{name}\"")
     print('---\nStop Playback | terminal=false bash="killall vlc"')
+    print('Russ Theme | terminal=false bash="killall vlc; google-chrome https://youtu.be/jR9_wbTrInI?t=11"')
