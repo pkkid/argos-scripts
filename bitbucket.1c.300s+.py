@@ -6,7 +6,7 @@ Bitbucket Pull Requests
   Argos Documentation: https://github.com/p-e-w/argos
 """
 import argparse
-import jstyleson
+import json
 import os
 import requests
 from PIL import Image
@@ -29,7 +29,7 @@ def _getkey(lookup):
         filepath = os.path.expanduser(path)
         if not os.path.exists(filepath): continue  # noqa
         with open(filepath, 'r') as handle:
-            value = jstyleson.load(handle).get(group, {}).get(name)
+            value = json.load(handle).get(group, {}).get(name)
             if value is None: continue  # noqa
             if not value.startswith('b64:'): return value  # noqa
             return b64decode(value[4:]).decode('utf8')
@@ -48,7 +48,7 @@ def _get_image(host, user, size=(25, 25)):
     global cache
     if not cache and os.path.isfile(CACHEFILE):
         with open(CACHEFILE, 'r') as handle:
-            cache = jstyleson.load(handle)
+            cache = json.load(handle)
     if user['name'] not in cache:
         try:
             response = requests.get(f'{host}{user["avatarUrl"]}')
@@ -66,7 +66,7 @@ def _get_image(host, user, size=(25, 25)):
             imgstr = b64encode(buffered.getvalue()).decode('utf8')
             cache[user['name']] = imgstr
             with open(CACHEFILE, 'w') as handle:
-                jstyleson.dump(cache, handle)
+                json.dump(cache, handle)
         except Exception:
             return circle('#918275', size)
     return cache.get(user['name'], '')
@@ -91,7 +91,7 @@ def _getprs(host, auth, role, debug=False):
             raise Exception(response['errors'][0].get('message', 'Error fetching prs'))
         for pr in response['values']:
             if debug:
-                print(jstyleson.dumps(pr, indent=2))
+                print(json.dumps(pr, indent=2))
                 print('---')
                 print(auth.username)
             if _is_reviewed(auth.username, pr['reviewers']):

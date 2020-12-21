@@ -6,7 +6,7 @@ JIRA Open Issues.
   Argos Documentation: https://github.com/p-e-w/argos
 """
 import argparse
-import jstyleson
+import json
 import os
 import requests
 from base64 import b64encode, b64decode
@@ -29,7 +29,7 @@ def _getkey(lookup):
         filepath = os.path.expanduser(path)
         if not os.path.exists(filepath): continue  # noqa
         with open(filepath, 'r') as handle:
-            value = jstyleson.load(handle).get(group, {}).get(name)
+            value = json.load(handle).get(group, {}).get(name)
             if value is None: continue  # noqa
             if not value.startswith('b64:'): return value  # noqa
             return b64decode(value[4:]).decode('utf8')
@@ -48,13 +48,13 @@ def _get_image(issuetype):
     global cache
     if not cache and os.path.isfile(CACHEFILE):
         with open(CACHEFILE, 'r') as handle:
-            cache = jstyleson.load(handle)
+            cache = json.load(handle)
     if issuetype['name'] not in cache:
         img = requests.get(issuetype['iconUrl'])
         imgstr = b64encode(img.content).decode('utf8')
         cache[issuetype['name']] = imgstr
         with open(CACHEFILE, 'w') as handle:
-            jstyleson.dump(cache, handle)
+            json.dump(cache, handle)
     return cache[issuetype['name']]
 
 
@@ -66,7 +66,7 @@ def _get_issues(host, auth, query, debug=False):
         response = requests.get(url, auth=auth)
         for issue in response.json()['issues']:
             if opts.debug:
-                print(jstyleson.dumps(issue, indent=2))
+                print(json.dumps(issue, indent=2))
             key = issue['key']
             href = issue['self']
             summary = issue['fields']['summary']
@@ -75,6 +75,8 @@ def _get_issues(host, auth, query, debug=False):
         return issues
     except Exception as err:
         print(f'Err\n---\n{err}')
+        print(response.content)
+        raise
         raise SystemExit()
 
 

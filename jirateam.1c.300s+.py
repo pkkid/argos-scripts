@@ -6,7 +6,8 @@ JIRA Team Issues.
   Argos Documentation: https://github.com/p-e-w/argos
 """
 import argparse
-import jstyleson
+import datetime
+import json
 import os
 import requests
 from base64 import b64encode, b64decode
@@ -27,7 +28,7 @@ def _getkey(lookup):
         filepath = os.path.expanduser(path)
         if not os.path.exists(filepath): continue  # noqa
         with open(filepath, 'r') as handle:
-            value = jstyleson.load(handle).get(group, {}).get(name)
+            value = json.load(handle).get(group, {}).get(name)
             if value is None: continue  # noqa
             if not value.startswith('b64:'): return value  # noqa
             return b64decode(value[4:]).decode('utf8')
@@ -47,13 +48,13 @@ def _get_image(issuetype):
     global cache
     if not cache and os.path.isfile(CACHEFILE):
         with open(CACHEFILE, 'r') as handle:
-            cache = jstyleson.load(handle)
+            cache = json.load(handle)
     if issuetype['name'] not in cache:
         img = requests.get(issuetype['iconUrl'])
         imgstr = b64encode(img.content).decode('utf8')
         cache[issuetype['name']] = imgstr
         with open(CACHEFILE, 'w') as handle:
-            jstyleson.dump(cache, handle)
+            json.dump(cache, handle)
     return cache[issuetype['name']]
 
 
@@ -63,22 +64,35 @@ def _get_issues(host, auth, filterid, debug=False):
         # Get the JQL Query from the api
         issues = defaultdict(list)
         jql = requests.get(f'{host}/rest/api/2/filter/{filterid}', auth=auth).json()['jql']
-        url = f'{host}/rest/api/2/search?fields=summary,issuetype,assignee,status&jql={jql}'
+        url = f'{host}/rest/api/2/search?fields=summary,issuetype,assignee,status&expand=changelog&jql={jql}'
         response = requests.get(url, auth=auth)
         for issue in response.json()['issues']:
             if opts.debug:
-                print(jstyleson.dumps(issue, indent=2))
+                print(json.dumps(issue, indent=2))
             key = issue['key'].replace('UNTY-', '')
             href = issue['self']
             summary = issue['fields']['summary']
             name = issue['fields']['assignee']['displayName']
             img = _get_image(issue['fields']['issuetype'])
             status = issue['fields']['status']['name']
-            issues[name].append((key, summary, href, img, status))
+            days = _get_days_in_state(issue)
+            issues[name].append((key, summary, href, img, status, days))
         return issues
     except Exception as err:
         print(f'Err\n---\n{err}')
         raise SystemExit()
+
+
+def _get_days_in_state(issue):
+    """ Find the last date state changed. """
+    histories = issue.get('changelog', {}).get('histories', [])
+    for history in histories:
+        for item in history['items']:
+            if item['field'] == 'status':
+                now = datetime.date.today()
+                then = datetime.datetime.strptime(history['created'][:10], '%Y-%m-%d').date()
+                return (now - then).days
+    return '?'
 
 
 if __name__ == '__main__':
@@ -91,8 +105,8 @@ if __name__ == '__main__':
     print(f'Team\n---')
     for name in sorted(issues.keys()):
         print(f"{name} <span color='#888'>({len(issues[name])} issues)</span>")
-        for key, summary, href, img, status in issues[name][:10]:
-            print(f'-- {status.upper()} - {key} - {summary[:50].strip()} | size=10 color=#bbb href="{host}/browse/UNTY-{key}" image="{img}"')  # noqa
+        for key, summary, href, img, status, days in issues[name][:10]:
+            print(f'-- {status.upper()} - {key} - {summary[:50].strip()} <span color="#888">({days} days)</span> | size=10 color=#bbb href="{host}/browse/UNTY-{key}" image="{img}"')  # noqa
     if not issues:
         print(f'No pull requests | color=#888')
     url = SEARCH.replace('{host}', host).replace('{filterid}', filterid)
