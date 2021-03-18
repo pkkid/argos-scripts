@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 # encoding: utf-8
-"""
-JIRA Team Issues.
-  Argos Extension: https://extensions.gnome.org/extension/1176/argos/
-  Argos Documentation: https://github.com/p-e-w/argos
-"""
+# Argos Extension: https://extensions.gnome.org/extension/1176/argos/
+# Argos Documentation: https://github.com/p-e-w/argos
 import argparse
 import datetime
 import json
 import os
 import requests
-from base64 import b64encode, b64decode
+from base64 import b64encode
 from collections import defaultdict
+from getkeys import getkey
 from requests.auth import HTTPBasicAuth
 
 SEARCH = '{host}/issues/?filter={filterid}'
@@ -21,25 +19,11 @@ FILTER_ID = None
 cache = {}  # global cache object
 
 
-def _getkey(lookup):
-    """ Fetch the specified key. """
-    group, name = lookup.lower().split('.')
-    for path in ('~/.config/keys.jsonc', '~/Private/keys/keys.jsonc'):
-        filepath = os.path.expanduser(path)
-        if not os.path.exists(filepath): continue  # noqa
-        with open(filepath, 'r') as handle:
-            value = json.load(handle).get(group, {}).get(name)
-            if value is None: continue  # noqa
-            if not value.startswith('b64:'): return value  # noqa
-            return b64decode(value[4:]).decode('utf8')
-    raise Exception(f'Key not specified: {lookup}')
-
-
 def _get_jira_auth():
     """ Fetch Jira authentication token. """
-    host = _getkey('jira.host')
-    auth = HTTPBasicAuth(*_getkey('jira.auth').split(':'))
-    filterid = _getkey('jira.team_filter')
+    host = getkey('jira.host', prompt=False)
+    auth = HTTPBasicAuth(*getkey('jira.auth', prompt=False).split(':'))
+    filterid = getkey('jira.team_filter', prompt=False)
     return host, auth, filterid
 
 
@@ -102,12 +86,12 @@ if __name__ == '__main__':
     # Display the Argos output
     host, auth, filterid = _get_jira_auth()
     issues = _get_issues(host, auth, filterid, opts.debug)
-    print(f'Team\n---')
+    print('Team\n---')
     for name in sorted(issues.keys()):
         print(f"{name} <span color='#888'>({len(issues[name])} issues)</span>")
         for key, summary, href, img, status, days in issues[name][:10]:
             print(f'-- {status.upper()} - {key} - {summary[:50].strip()} <span color="#888">({days} days)</span> | size=10 color=#bbb href="{host}/browse/UNTY-{key}" image="{img}"')  # noqa
     if not issues:
-        print(f'No pull requests | color=#888')
+        print('No pull requests | color=#888')
     url = SEARCH.replace('{host}', host).replace('{filterid}', filterid)
     print(f'---\nGo to Jira {" "*160}<span color="#444">.</span>| href="{url}"')

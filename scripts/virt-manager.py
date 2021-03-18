@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 # encoding: utf-8
-"""
-Displays and allows you to manage running VMs from the system tray. This only
-works if you are running Gnome Shell and install the Argos gnome-shell-extension.
-Symlink this script to ~/.config/argos and you should be good to go.
-  Argos Extension: https://extensions.gnome.org/extension/1176/argos/
-  Argos Documentation: https://github.com/p-e-w/argos
-"""
+# Displays and allows you to manage running VMs from the system tray. This only
+# works if you are running Gnome Shell and install the Argos gnome-shell-extension.
+# Symlink this script to ~/.config/argos and you should be good to go.
+# * Argos Extension: https://extensions.gnome.org/extension/1176/argos/
+# * Argos Documentation: https://github.com/p-e-w/argos
 import re
 import subprocess
 from PIL import Image

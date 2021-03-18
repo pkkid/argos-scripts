@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
-"""
-Internet Radio using VLC
-  Argos Extension: https://extensions.gnome.org/extension/1176/argos/
-  Argos Documentation: https://github.com/p-e-w/argos
-"""
+# Argos Extension: https://extensions.gnome.org/extension/1176/argos/
+# Argos Documentation: https://github.com/p-e-w/argos
 import os
 import subprocess
 from shlex import split

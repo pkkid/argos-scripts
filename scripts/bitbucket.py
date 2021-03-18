@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
-"""
-Bitbucket Pull Requests
-  Argos Extension: https://extensions.gnome.org/extension/1176/argos/
-  Argos Documentation: https://github.com/p-e-w/argos
-"""
+# Argos Extension: https://extensions.gnome.org/extension/1176/argos/
+# Argos Documentation: https://github.com/p-e-w/argos
 import argparse
 import json
 import os
@@ -12,6 +9,7 @@ import requests
 from PIL import Image
 from PIL import ImageDraw
 from base64 import b64encode, b64decode
+from getkeys import getkey
 from io import BytesIO
 from requests.auth import HTTPBasicAuth
 
@@ -22,24 +20,10 @@ CACHEFILE = os.path.join(os.path.dirname(__file__), CACHENAME)
 cache = {}  # global cache object
 
 
-def _getkey(lookup):
-    """ Fetch the specified key. """
-    group, name = lookup.lower().split('.')
-    for path in ('~/.config/keys.jsonc', '~/Private/keys/keys.jsonc'):
-        filepath = os.path.expanduser(path)
-        if not os.path.exists(filepath): continue  # noqa
-        with open(filepath, 'r') as handle:
-            value = json.load(handle).get(group, {}).get(name)
-            if value is None: continue  # noqa
-            if not value.startswith('b64:'): return value  # noqa
-            return b64decode(value[4:]).decode('utf8')
-    raise Exception(f'Key not specified: {lookup}')
-
-
 def _get_bitbucket_auth():
     """ Fetch Bitbucket authentication token. """
-    host = _getkey('bitbucket.host')
-    auth = HTTPBasicAuth(*_getkey('bitbucket.auth').split(':'))
+    host = getkey('bitbucket.host', prompt=False)
+    auth = HTTPBasicAuth(*getkey('bitbucket.auth', prompt=False).split(':'))
     return host, auth
 
 
@@ -155,5 +139,5 @@ if __name__ == '__main__':
         print(f'{title[:60].strip()}\\n<span color="#999"><small>{fromref} → {toref}{conflict}</small></span> \
              | href="{href}" image="{img}"')
     if not prs:
-        print(f'No pull requests | color=#888')
+        print('No pull requests | color=#888')
     print(f'Go to Bitbucket | href="{host}"')

@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # encoding: utf-8
-"""
-JIRA Open Issues.
-  Argos Extension: https://extensions.gnome.org/extension/1176/argos/
-  Argos Documentation: https://github.com/p-e-w/argos
-"""
+# Argos Extension: https://extensions.gnome.org/extension/1176/argos/
+# Argos Documentation: https://github.com/p-e-w/argos
 import argparse
 import json
 import os
 import requests
-from base64 import b64encode, b64decode
+from base64 import b64encode
+from getkeys import getkey
 from requests.auth import HTTPBasicAuth
 
 SEARCH = '{host}/issues/?jql={query}'
@@ -22,24 +20,10 @@ WATCHED_ISSUES = 'watcher = currentUser() AND statusCategory != done ORDER BY up
 RECENT_ISSUES = 'issuekey in issueHistory() ORDER BY lastViewed DESC'
 
 
-def _getkey(lookup):
-    """ Fetch the specified key. """
-    group, name = lookup.lower().split('.')
-    for path in ('~/.config/keys.jsonc', '~/Private/keys/keys.jsonc'):
-        filepath = os.path.expanduser(path)
-        if not os.path.exists(filepath): continue  # noqa
-        with open(filepath, 'r') as handle:
-            value = json.load(handle).get(group, {}).get(name)
-            if value is None: continue  # noqa
-            if not value.startswith('b64:'): return value  # noqa
-            return b64decode(value[4:]).decode('utf8')
-    raise Exception(f'Key not specified: {lookup}')
-
-
 def _get_jira_auth():
     """ Fetch Jira authentication token. """
-    host = _getkey('jira.host')
-    auth = HTTPBasicAuth(*_getkey('jira.auth').split(':'))
+    host = getkey('jira.host', prompt=False)
+    auth = HTTPBasicAuth(*getkey('jira.auth', prompt=False).split(':'))
     return host, auth
 
 
@@ -102,7 +86,7 @@ if __name__ == '__main__':
     for key, summary, href, img in issues:
         print(f'{key} - {summary[:60].strip()} | href="{host}/browse/{key}" image="{img}"')
     if not issues:
-        print(f'No assigned issues | color=#888')
+        print('No assigned issues | color=#888')
     # Watched Issues and Escalations
     print(f'---\nWatching {len(watched)} Issues')
     for key, summary, href, img in watched[:15]:
